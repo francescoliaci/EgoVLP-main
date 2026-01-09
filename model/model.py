@@ -38,28 +38,35 @@ class FrozenInTime(BaseModel):
         else:
             self.text_model = AutoModel.from_pretrained(text_params["model"])
 
-        # Freeze text encoder (IMPORTANT)
-        self.text_model.eval()
-        for p in self.text_model.parameters():
-            p.requires_grad = False
-
         # -----------------------------
         # Text projection to 1792
         # -----------------------------
         hidden_size = self.text_model.config.hidden_size
-
+        
         if hidden_size == target_dim:
-            # Already aligned (rare but possible)
             self.txt_proj = nn.Identity()
         else:
-            # Standard case: 768 → 1792
             self.txt_proj = nn.Linear(hidden_size, target_dim, bias=False)
-
-        # Optional checkpoint loading (rarely needed here)
+        
+        # -----------------------------
+        # Load EgoVLP checkpoint (if provided)
+        # -----------------------------
         if load_checkpoint not in ["", None]:
             checkpoint = torch.load(load_checkpoint, map_location="cpu")
             state_dict = checkpoint.get("state_dict", checkpoint)
             self.load_state_dict(state_dict, strict=False)
+        
+        # -----------------------------
+        # Freeze text encoder (AFTER loading)
+        # -----------------------------
+        self.text_model.eval()
+        for p in self.text_model.parameters():
+            p.requires_grad = False
+        
+        # Also freeze projection
+        for p in self.txt_proj.parameters():
+            p.requires_grad = False
+
 
     # -------------------------------------------------
     # Forward (TEXT ONLY)
