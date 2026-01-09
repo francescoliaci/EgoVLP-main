@@ -52,7 +52,7 @@ class FrozenInTime(BaseModel):
         # Load EgoVLP checkpoint (if provided)
         # -----------------------------
         if load_checkpoint not in ["", None]:
-            checkpoint = torch.load(load_checkpoint, map_location="cpu")
+            checkpoint = torch.load(load_checkpoint, map_location="cpu", weights_only=False)
             state_dict = checkpoint.get("state_dict", checkpoint)
             self.load_state_dict(state_dict, strict=False)
         
